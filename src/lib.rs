@@ -73,7 +73,7 @@ pub enum QuerySource {
 }
 
 impl QuerySource {
-    fn get_users_in_group(
+    fn get_users_from_group_data(
         &self,
         content: &str,
         group: &str,
@@ -96,20 +96,23 @@ impl QuerySource {
         Ok(users)
     }
 
-    fn getent_users(&self, group: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    fn getent_data(&self, group: &str) -> Result<String, Box<dyn std::error::Error>> {
         let mut command = std::process::Command::new("getent");
         command.args(&["group", group]);
         let command_output = command.output()?;
-        let output_str = String::from_utf8(command_output.stdout)?;
-        let users = output_str.get_users_in_group(group)?;
-        Ok(users)
+        let content = String::from_utf8(command_output.stdout)?;
+        Ok(content)
     }
 
     pub fn get_users(&self, group: String) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         match self {
-            QuerySource::Data(content) => self.get_users_in_group(content, &group),
-            QuerySource::Path(path) => self.get_users_in_group(&fs::read_to_string(path)?, &group),
-            QuerySource::GetentCommand => self.getent_users(&group),
+            QuerySource::Data(content) => self.get_users_from_group_data(content, &group),
+            QuerySource::Path(path) => {
+                self.get_users_from_group_data(&fs::read_to_string(path)?, &group)
+            }
+            QuerySource::GetentCommand => {
+                self.get_users_from_group_data(&self.getent_data(&group)?, &group)
+            }
         }
     }
 }
