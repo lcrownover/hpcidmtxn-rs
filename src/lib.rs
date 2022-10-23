@@ -52,3 +52,23 @@ impl UserQueryableSource for GroupFile {
         Path::new(&self.path).get_users_in_group(group)
     }
 }
+
+pub struct GetentCommand;
+
+impl UserQueryableSource for GetentCommand {
+    fn get_users_in_group(&self, group: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        let mut command = std::process::Command::new("getent");
+        command.args(&["group", group]);
+        let command_output = command.output()?;
+        let output_str = String::from_utf8(command_output.stdout)?;
+        let users = output_str
+            .split(':')
+            .last()
+            .expect("")
+            .split(',')
+            .map(|u| u.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        Ok(users)
+    }
+}
