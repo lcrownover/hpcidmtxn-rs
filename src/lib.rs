@@ -21,7 +21,7 @@ impl UserQueryableSource for String {
         let mut users: Vec<String> = Vec::new();
         for line in self.lines() {
             if !line.starts_with(group) {
-                continue
+                continue;
             }
             let mut results = line
                 .split(":")
@@ -44,7 +44,7 @@ impl UserQueryableSource for Path {
 }
 
 pub struct GroupFile {
-    pub path: String
+    pub path: String,
 }
 
 impl UserQueryableSource for GroupFile {
@@ -63,5 +63,53 @@ impl UserQueryableSource for GetentCommand {
         let output_str = String::from_utf8(command_output.stdout)?;
         let users = output_str.get_users_in_group(group)?;
         Ok(users)
+    }
+}
+
+pub enum QuerySource {
+    Data(String),
+    Path(String),
+    GetentCommand,
+}
+
+impl QuerySource {
+    fn get_users_in_group(
+        &self,
+        content: &str,
+        group: &str,
+    ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        let mut users: Vec<String> = Vec::new();
+        for line in content.lines() {
+            if !line.starts_with(&group) {
+                continue;
+            }
+            let mut results = line
+                .split(":")
+                .last()
+                .unwrap_or_default()
+                .split(",")
+                .map(|u| u.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            users.append(&mut results)
+        }
+        Ok(users)
+    }
+
+    fn getent_users(&self, group: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        let mut command = std::process::Command::new("getent");
+        command.args(&["group", group]);
+        let command_output = command.output()?;
+        let output_str = String::from_utf8(command_output.stdout)?;
+        let users = output_str.get_users_in_group(group)?;
+        Ok(users)
+    }
+
+    pub fn get_users(&self, group: String) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        match self {
+            QuerySource::Data(content) => self.get_users_in_group(content, &group),
+            QuerySource::Path(path) => self.get_users_in_group(&fs::read_to_string(path)?, &group),
+            QuerySource::GetentCommand => self.getent_users(&group),
+        }
     }
 }
