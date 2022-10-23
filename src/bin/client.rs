@@ -16,42 +16,17 @@ fn get_uid_for_user(user: &String, server: &String) -> Result<i32, Box<dyn Error
     }
 }
 
-// fn get_users_in_pirg(pirg: &String, query_source: UserQueryCommand) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    // let mut command;
-    // match query_source {
-        // UserQueryCommand::GroupFile(path) => {
-            // command = Command::new("grep");
-            // command.args(&[pirg, &path])
-        // },
-        // UserQueryCommand::GetentGroup => {
-            // command = Command::new("getent");
-            // command.args(&["group", &pirg])
-        // }
-    // };
-    // let command_output = command.output()?;
-    // let output_str = String::from_utf8(command_output.stdout)?;
-    // let users = output_str
-        // .split(':')
-        // .last()
-        // .expect("")
-        // .split(',')
-        // .map(|u| u.trim().to_string())
-        // .filter(|s| !s.is_empty())
-        // .collect();
-    // Ok(users)
-// }
-
 fn main() {
     let matches = command!()
-        .arg(arg!(-p --pirg <PIRG> "PIRG name").required(true))
+        .arg(arg!(-g --group <GROUP> "group name").required(true))
         .arg(arg!(-s --server <SERVER> "hpcidmtxn server to connect to").required(true))
         .arg(arg!(-o --source_mode <TYPE> "either 'file' or 'getent'").value_parser(["file", "getent"]).required(true))
-        .arg(arg!(-a --path <PATH> "path to the source file").value_parser(value_parser!(PathBuf)))
+        .arg(arg!(-p --path <PATH> "path to the source file").value_parser(value_parser!(PathBuf)))
         .get_matches();
 
-    let pirg = matches
-        .get_one::<String>("pirg")
-        .expect("pirg is required");
+    let group = matches
+        .get_one::<String>("group")
+        .expect("group is required");
 
     let server = matches
         .get_one::<String>("server")
@@ -79,18 +54,13 @@ fn main() {
         },
     };
 
-    let users = query_source.get_users_in_group(pirg).unwrap_or_else(|err| {
-        eprintln!("Error parsing users in pirg: {err}");
+    let users = query_source.get_users_in_group(group).unwrap_or_else(|err| {
+        eprintln!("Error parsing users in group: {err}");
         std::process::exit(1)
     });
 
-    // let users: Vec<String> = get_users_in_pirg(pirg, query_command).unwrap_or_else(|err| {
-        // eprintln!("Error parsing users in pirg: {err}");
-        // std::process::exit(1)
-    // });
-
     if users.is_empty() {
-        println!("No users in pirg");
+        println!("No users in group");
         std::process::exit(0)
     }
 
