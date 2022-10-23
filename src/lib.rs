@@ -61,14 +61,7 @@ impl UserQueryableSource for GetentCommand {
         command.args(&["group", group]);
         let command_output = command.output()?;
         let output_str = String::from_utf8(command_output.stdout)?;
-        let users = output_str
-            .split(':')
-            .last()
-            .expect("")
-            .split(',')
-            .map(|u| u.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
+        let users = output_str.get_users_in_group(group)?;
         Ok(users)
     }
 }

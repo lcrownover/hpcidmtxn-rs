@@ -21,7 +21,7 @@ fn main() {
         .arg(arg!(-g --group <GROUP> "group name").required(true))
         .arg(arg!(-s --server <SERVER> "hpcidmtxn server to connect to").required(true))
         .arg(arg!(-o --source_mode <TYPE> "either 'file' or 'getent'").value_parser(["file", "getent"]).required(true))
-        .arg(arg!(-p --path <PATH> "path to the source file").value_parser(value_parser!(PathBuf)))
+        .arg(arg!(-p --path <PATH> "path to the source file. default: /etc/group").value_parser(value_parser!(PathBuf)))
         .get_matches();
 
     let group = matches
@@ -43,8 +43,7 @@ fn main() {
                 let path_s = p.as_path().display().to_string();
                 Box::new(GroupFile{ path: path_s })
             } else {
-                eprintln!("--path is required when using source_mode file");
-                std::process::exit(1)
+                Box::new(GroupFile{path: "/etc/group".to_string()})
             }
         },
         "getent" => Box::new(GetentCommand),
