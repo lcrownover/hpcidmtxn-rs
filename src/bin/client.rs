@@ -36,24 +36,24 @@ fn main() {
         .get_one::<String>("source_mode")
         .expect("source_mode is required");
 
-    let query_source: Box<dyn UserQueryableSource> = match source_mode.as_str() {
+    let user_res = match source_mode.as_str() {
         "file" => {
             let source_path = matches.get_one::<PathBuf>("path");
             if let Some(p) = source_path {
                 let path_s = p.as_path().display().to_string();
-                Box::new(GroupFile{ path: path_s })
+                GroupFile{ path: path_s }.get_users_in_group(group)
             } else {
-                Box::new(GroupFile{path: "/etc/group".to_string()})
+                GroupFile{path: "/etc/group".to_string()}.get_users_in_group(group)
             }
         },
-        "getent" => Box::new(GetentCommand),
+        "getent" => GetentCommand.get_users_in_group(group),
         _ => {
             eprintln!("couldnt match a query command using provided --source_mode and --path");
             std::process::exit(1)
         },
     };
 
-    let users = query_source.get_users_in_group(group).unwrap_or_else(|err| {
+    let users = user_res.unwrap_or_else(|err| {
         eprintln!("Error parsing users in group: {err}");
         std::process::exit(1)
     });
@@ -62,6 +62,8 @@ fn main() {
         println!("No users in group");
         std::process::exit(0)
     }
+
+    println!("{:?}", users);
 
     for user in users {
         let uid = match get_uid_for_user(&user, &server) {
